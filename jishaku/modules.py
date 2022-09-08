@@ -21,7 +21,7 @@ from discord.ext import commands
 
 from jishaku.types import BotT, ContextA
 
-__all__ = ('find_extensions_in', 'resolve_extensions', 'package_version', 'ExtensionConverter')
+__all__ = ("find_extensions_in", "resolve_extensions", "package_version", "ExtensionConverter")
 
 
 if typing.TYPE_CHECKING:
@@ -50,20 +50,20 @@ def find_extensions_in(path: typing.Union[str, pathlib.Path]) -> typing.List[str
     extension_names: typing.List[str] = []
 
     # Find extensions directly in this folder
-    for subpath in path.glob('*.py'):
-        parts = subpath.with_suffix('').parts
-        if parts[0] == '.':
+    for subpath in path.glob("*.py"):
+        parts = subpath.with_suffix("").parts
+        if parts[0] == ".":
             parts = parts[1:]
 
-        extension_names.append('.'.join(parts))
+        extension_names.append(".".join(parts))
 
     # Find extensions as subfolder modules
-    for subpath in path.glob('*/__init__.py'):
+    for subpath in path.glob("*/__init__.py"):
         parts = subpath.parent.parts
-        if parts[0] == '.':
+        if parts[0] == ".":
             parts = parts[1:]
 
-        extension_names.append('.'.join(parts))
+        extension_names.append(".".join(parts))
 
     return extension_names
 
@@ -75,11 +75,11 @@ def resolve_extensions(bot: BotT, name: str) -> typing.List[str]:
 
     exts: typing.List[str] = []
     for ext in braceexpand(name):
-        if ext.endswith('.*'):
-            module_parts = ext[:-2].split('.')
+        if ext.endswith(".*"):
+            module_parts = ext[:-2].split(".")
             path = pathlib.Path(*module_parts)
             exts.extend(find_extensions_in(path))
-        elif ext == '~':
+        elif ext == "~":
             exts.extend(bot.extensions)
         else:
             exts.append(ext)
@@ -103,11 +103,7 @@ class ExtensionConverter(_ExtensionConverterBase):  # pylint: disable=too-few-pu
     A converter interface for resolve_extensions to match extensions from users.
     """
 
-    async def convert(
-        self,
-        ctx: ContextA,
-        argument: str
-    ) -> typing.List[str]:
+    async def convert(self, ctx: ContextA, argument: str) -> typing.List[str]:
         """
         Converts a name, glob, or brace expand of extensions into the list of extension names.
         """

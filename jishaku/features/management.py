@@ -35,26 +35,26 @@ class ManagementFeature(Feature):
     """
 
     @Feature.Command(parent="jsk", name="load", aliases=["reload"])
-    async def jsk_load(self, ctx: ContextA, *extensions: ExtensionConverter):  # type: ignore
+    async def jsk_load(self, ctx: ContextA, extensions: ExtensionConverter):  # type: ignore
         """
         Loads or reloads the given extension names.
 
         Reports any extensions that failed to load.
         """
 
-        extensions: typing.Iterable[typing.List[str]] = extensions  # type: ignore
+        extensions: typing.Iterable[typing.List[str]] = extensions.split(" ")  # type: ignore
 
-        paginator = commands.Paginator(prefix='', suffix='')
+        paginator = commands.Paginator(prefix="", suffix="")
 
         # 'jsk reload' on its own just reloads jishaku
-        if ctx.invoked_with == 'reload' and not extensions:
-            extensions = [['jishaku']]
+        if ctx.invoked_with == "reload" and not extensions:
+            extensions = [["jishaku"]]
 
         for extension in itertools.chain(*extensions):
             method, icon = (
                 (self.bot.reload_extension, "\N{CLOCKWISE RIGHTWARDS AND LEFTWARDS OPEN CIRCLE ARROWS}")
-                if extension in self.bot.extensions else
-                (self.bot.load_extension, "\N{INBOX TRAY}")
+                if extension in self.bot.extensions
+                else (self.bot.load_extension, "\N{INBOX TRAY}")
             )
 
             try:
@@ -62,14 +62,11 @@ class ManagementFeature(Feature):
             except Exception as exc:  # pylint: disable=broad-except
                 if isinstance(exc, commands.ExtensionFailed) and exc.__cause__:
                     cause = exc.__cause__
-                    traceback_data = ''.join(traceback.format_exception(type(cause), cause, cause.__traceback__, 8))
+                    traceback_data = "".join(traceback.format_exception(type(cause), cause, cause.__traceback__, 8))
                 else:
-                    traceback_data = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__, 2))
+                    traceback_data = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__, 2))
 
-                paginator.add_line(
-                    f"{icon}\N{WARNING SIGN} `{extension}`\n```py\n{traceback_data}\n```",
-                    empty=True
-                )
+                paginator.add_line(f"{icon}\N{WARNING SIGN} `{extension}`\n```py\n{traceback_data}\n```", empty=True)
             else:
                 paginator.add_line(f"{icon} `{extension}`", empty=True)
 
@@ -77,16 +74,16 @@ class ManagementFeature(Feature):
             await ctx.send(page)
 
     @Feature.Command(parent="jsk", name="unload")
-    async def jsk_unload(self, ctx: ContextA, *extensions: ExtensionConverter):  # type: ignore
+    async def jsk_unload(self, ctx: ContextA, extensions: ExtensionConverter):  # type: ignore
         """
         Unloads the given extension names.
 
         Reports any extensions that failed to unload.
         """
 
-        extensions: typing.Iterable[typing.List[str]] = extensions  # type: ignore
+        extensions: typing.Iterable[typing.List[str]] = extensions.split(" ")  # type: ignore
 
-        paginator = commands.Paginator(prefix='', suffix='')
+        paginator = commands.Paginator(prefix="", suffix="")
         icon = "\N{OUTBOX TRAY}"
 
         for extension in itertools.chain(*extensions):
@@ -95,10 +92,7 @@ class ManagementFeature(Feature):
             except Exception as exc:  # pylint: disable=broad-except
                 traceback_data = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__, 2))
 
-                paginator.add_line(
-                    f"{icon}\N{WARNING SIGN} `{extension}`\n```py\n{traceback_data}\n```",
-                    empty=True
-                )
+                paginator.add_line(f"{icon}\N{WARNING SIGN} `{extension}`\n```py\n{traceback_data}\n```", empty=True)
             else:
                 paginator.add_line(f"{icon} `{extension}`", empty=True)
 
@@ -117,17 +111,18 @@ class ManagementFeature(Feature):
         await ctx.bot.close()
 
     @Feature.Command(parent="jsk", name="invite")
-    async def jsk_invite(self, ctx: ContextA, *perms: str):
+    async def jsk_invite(self, ctx: ContextA, perms: str):
         """
         Retrieve the invite URL for this bot.
 
         If the names of permissions are provided, they are requested as part of the invite.
         """
 
-        scopes = ('bot', 'applications.commands')
+        scopes = ("bot", "applications.commands")
         permissions = discord.Permissions()
 
-        for perm in perms:
+        _perms = perms.split(" ")
+        for perm in _perms:
             if perm not in dict(permissions):
                 raise commands.BadArgument(f"Invalid permission: {perm}")
 
@@ -135,11 +130,7 @@ class ManagementFeature(Feature):
 
         application_info = await self.bot.application_info()
 
-        query = {
-            "client_id": application_info.id,
-            "scope": "+".join(scopes),
-            "permissions": permissions.value
-        }
+        query = {"client_id": application_info.id, "scope": "+".join(scopes), "permissions": permissions.value}
 
         return await ctx.send(
             f"Link to invite this bot:\n<https://discordapp.com/oauth2/authorize?{urlencode(query, safe='+')}>"
@@ -163,7 +154,9 @@ class ManagementFeature(Feature):
         for _ in range(6):
             # First generate the text
             text = "Calculating round-trip time...\n\n"
-            text += "\n".join(f"Reading {index + 1}: {reading * 1000:.2f}ms" for index, reading in enumerate(api_readings))
+            text += "\n".join(
+                f"Reading {index + 1}: {reading * 1000:.2f}ms" for index, reading in enumerate(api_readings)
+            )
 
             if api_readings:
                 average, stddev = mean_stddev(api_readings)
@@ -200,7 +193,7 @@ class ManagementFeature(Feature):
     SLASH_COMMAND_ERROR = re.compile(r"In ((?:\d+\.[a-z]+\.?)+)")
 
     @Feature.Command(parent="jsk", name="sync")
-    async def jsk_sync(self, ctx: ContextA, *targets: str):
+    async def jsk_sync(self, ctx: ContextA, targets: str):
         """
         Sync global or guild application commands to Discord.
         """
@@ -209,15 +202,15 @@ class ManagementFeature(Feature):
             await ctx.send("Cannot sync when application info not fetched")
             return
 
-        paginator = commands.Paginator(prefix='', suffix='')
-
+        _targets: typing.List[str] = targets.split(" ")
+        paginator = commands.Paginator(prefix="", suffix="")
         guilds_set: typing.Set[typing.Optional[int]] = set()
-        for target in targets:
-            if target == '$':
+        for target in _targets:
+            if target == "$":
                 guilds_set.add(None)
-            elif target == '*':
+            elif target == "*":
                 guilds_set |= set(self.bot.tree._guild_commands.keys())  # type: ignore  # pylint: disable=protected-access
-            elif target == '.':
+            elif target == ".":
                 if ctx.guild:
                     guilds_set.add(ctx.guild.id)
                 else:
@@ -229,7 +222,7 @@ class ManagementFeature(Feature):
                 except ValueError as error:
                     raise commands.BadArgument(f"{target} is not a valid guild ID") from error
 
-        if not targets:
+        if not _targets:
             guilds_set.add(None)
 
         guilds: typing.List[typing.Optional[int]] = list(guilds_set)
@@ -239,7 +232,7 @@ class ManagementFeature(Feature):
             slash_commands = self.bot.tree._get_all_commands(  # type: ignore  # pylint: disable=protected-access
                 guild=discord.Object(guild) if guild else None
             )
-            translator = getattr(self.bot.tree, 'translator', None)
+            translator = getattr(self.bot.tree, "translator", None)
             if translator:
                 payload = [await command.get_translated_payload(translator) for command in slash_commands]
             else:
@@ -249,7 +242,9 @@ class ManagementFeature(Feature):
                 if guild is None:
                     data = await self.bot.http.bulk_upsert_global_commands(self.bot.application_id, payload=payload)
                 else:
-                    data = await self.bot.http.bulk_upsert_guild_commands(self.bot.application_id, guild, payload=payload)
+                    data = await self.bot.http.bulk_upsert_guild_commands(
+                        self.bot.application_id, guild, payload=payload
+                    )
 
                 synced = [
                     discord.app_commands.AppCommand(data=d, state=ctx._state)  # type: ignore  # pylint: disable=protected-access,no-member
@@ -270,7 +265,7 @@ class ManagementFeature(Feature):
                         pool = slash_commands
                         selected_command = None
                         name = ""
-                        parts = match.group(1).split('.')
+                        parts = match.group(1).split(".")
                         assert len(parts) % 2 == 0
 
                         for part_index in range(0, len(parts), 2):
@@ -282,7 +277,7 @@ class ManagementFeature(Feature):
                                 selected_command = pool[index]  # type: ignore
                                 name += selected_command.name + " "
 
-                                if hasattr(selected_command, '_children'):  # type: ignore
+                                if hasattr(selected_command, "_children"):  # type: ignore
                                     pool = list(selected_command._children.values())  # type: ignore  # pylint: disable=protected-access
                                 else:
                                     pool = None
@@ -294,27 +289,33 @@ class ManagementFeature(Feature):
                         if selected_command:
                             to_inspect: typing.Any = None
 
-                            if hasattr(selected_command, 'callback'):  # type: ignore
+                            if hasattr(selected_command, "callback"):  # type: ignore
                                 to_inspect = selected_command.callback  # type: ignore
                             elif isinstance(selected_command, commands.Cog):
                                 to_inspect = type(selected_command)
 
                             try:
-                                error_lines.append(''.join([
-                                    "\N{MAGNET} This is likely caused by: `",
-                                    name,
-                                    "` at ",
-                                    str(inspections.file_loc_inspection(to_inspect)),  # type: ignore
-                                    ":",
-                                    str(inspections.line_span_inspection(to_inspect)),  # type: ignore
-                                ]))
+                                error_lines.append(
+                                    "".join(
+                                        [
+                                            "\N{MAGNET} This is likely caused by: `",
+                                            name,
+                                            "` at ",
+                                            str(inspections.file_loc_inspection(to_inspect)),  # type: ignore
+                                            ":",
+                                            str(inspections.line_span_inspection(to_inspect)),  # type: ignore
+                                        ]
+                                    )
+                                )
                             except Exception:  # pylint: disable=broad-except
                                 error_lines.append(f"\N{MAGNET} This is likely caused by: `{name}`")
 
                     except Exception as diag_error:  # pylint: disable=broad-except
-                        error_lines.append(f"\N{MAGNET} Couldn't determine cause: {type(diag_error).__name__}: {diag_error}")
+                        error_lines.append(
+                            f"\N{MAGNET} Couldn't determine cause: {type(diag_error).__name__}: {diag_error}"
+                        )
 
-                error_text = '\n'.join(error_lines)
+                error_text = "\n".join(error_lines)
 
                 if guild:
                     paginator.add_line(f"\N{WARNING SIGN} `{guild}`: {error_text}", empty=True)
@@ -322,7 +323,9 @@ class ManagementFeature(Feature):
                     paginator.add_line(f"\N{WARNING SIGN} Global: {error_text}", empty=True)
             else:
                 if guild:
-                    paginator.add_line(f"\N{SATELLITE ANTENNA} `{guild}` Synced {len(synced)} guild commands", empty=True)
+                    paginator.add_line(
+                        f"\N{SATELLITE ANTENNA} `{guild}` Synced {len(synced)} guild commands", empty=True
+                    )
                 else:
                     paginator.add_line(f"\N{SATELLITE ANTENNA} Synced {len(synced)} global commands", empty=True)
 

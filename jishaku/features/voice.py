@@ -36,7 +36,7 @@ class VoiceFeature(Feature):
             return await ctx.send("Voice cannot be used because PyNaCl is not loaded.")
 
         if not discord.opus.is_loaded():
-            if hasattr(discord.opus, '_load_default'):
+            if hasattr(discord.opus, "_load_default"):
                 if not discord.opus._load_default():  # type: ignore  # pylint: disable=protected-access,no-member
                     return await ctx.send(
                         "Voice cannot be used because libopus is not loaded and attempting to load the default failed."
@@ -50,10 +50,14 @@ class VoiceFeature(Feature):
         Check whether we are connected to VC in this guild.
         """
 
-        if not ctx.guild or not ctx.guild.voice_client or (
-            not ctx.guild.voice_client.is_connected()
-            if isinstance(ctx.guild.voice_client, discord.VoiceClient)
-            else False
+        if (
+            not ctx.guild
+            or not ctx.guild.voice_client
+            or (
+                not ctx.guild.voice_client.is_connected()
+                if isinstance(ctx.guild.voice_client, discord.VoiceClient)
+                else False
+            )
         ):
             return await ctx.send("Not connected to a voice channel in this guild.")
 
@@ -71,11 +75,10 @@ class VoiceFeature(Feature):
 
         guild: discord.Guild = ctx.guild  # type: ignore
 
-        if (not guild.voice_client.is_playing() if isinstance(guild.voice_client, discord.VoiceClient) else False):
+        if not guild.voice_client.is_playing() if isinstance(guild.voice_client, discord.VoiceClient) else False:
             return await ctx.send("The voice client in this guild is not playing anything.")
 
-    @Feature.Command(parent="jsk", name="voice", aliases=["vc"],
-                     invoke_without_command=True, ignore_extra=False)
+    @Feature.Command(parent="jsk", name="voice", aliases=["vc"], invoke_without_command=True, ignore_extra=False)
     async def jsk_voice(self, ctx: ContextA):
         """
         Voice-related commands.
@@ -95,8 +98,10 @@ class VoiceFeature(Feature):
             if not voice or not voice.is_connected():
                 return await ctx.send("Not connected.")
 
-            await ctx.send(f"Connected to {voice.channel.name}, "
-                           f"{'paused' if voice.is_paused() else 'playing' if voice.is_playing() else 'idle'}.")
+            await ctx.send(
+                f"Connected to {voice.channel.name}, "
+                f"{'paused' if voice.is_paused() else 'playing' if voice.is_playing() else 'idle'}."
+            )
         else:
             await ctx.send(f"Connected to {voice.channel} with a custom VoiceProtocol: {voice}")
 
@@ -105,20 +110,20 @@ class VoiceFeature(Feature):
         self,
         ctx: ContextA,
         *,
-        destination: typing.Union[discord.VoiceChannel, discord.Member] = None  # type: ignore
+        voice_channel: typing.Optional[discord.VoiceChannel] = None,
+        member: typing.Optional[discord.Member] = None,
     ):
         """
         Joins a voice channel, or moves to it if already connected.
-
-        Passing a voice channel uses that voice channel.
-        Passing a member will use that member's current voice channel.
-        Passing nothing will use the author's voice channel.
         """
+
+        if voice_channel and member:
+            return await ctx.send("You cannot specify both a voice channel and a member.")
 
         if await self.voice_check(ctx):
             return
 
-        destination = destination or ctx.author
+        destination = voice_channel or member or ctx.author
 
         if isinstance(destination, discord.Member):
             if destination.voice and destination.voice.channel:
@@ -231,8 +236,9 @@ class VoiceFeature(Feature):
             source = voice.source
 
             if not isinstance(source, discord.PCMVolumeTransformer):
-                return await ctx.send("This source doesn't support adjusting volume or "
-                                      "the interface to do so is not exposed.")
+                return await ctx.send(
+                    "This source doesn't support adjusting volume or " "the interface to do so is not exposed."
+                )
 
             source.volume = volume
 

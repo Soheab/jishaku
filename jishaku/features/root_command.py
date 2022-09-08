@@ -44,8 +44,7 @@ class RootCommand(Feature):
         super().__init__(*args, **kwargs)
         self.jsk.hidden = Flags.HIDE  # type: ignore
 
-    @Feature.Command(name="jishaku", aliases=["jsk"],
-                     invoke_without_command=True, ignore_extra=False)
+    @Feature.Command(name="jishaku", aliases=["jsk"], invoke_without_command=True, ignore_extra=False)
     async def jsk(self, ctx: ContextA):
         """
         The Jishaku debug and diagnostic commands.
@@ -56,24 +55,25 @@ class RootCommand(Feature):
 
         # Try to locate what vends the `discord` package
         distributions: typing.List[str] = [
-            dist for dist in packages_distributions()['discord']  # type: ignore
+            dist
+            for dist in packages_distributions()["discord"]  # type: ignore
             if any(
-                file.parts == ('discord', '__init__.py')  # type: ignore
+                file.parts == ("discord", "__init__.py")  # type: ignore
                 for file in distribution(dist).files  # type: ignore
             )
         ]
 
         if distributions:
-            dist_version = f'{distributions[0]} `{package_version(distributions[0])}`'
+            dist_version = f"{distributions[0]} `{package_version(distributions[0])}`"
         else:
-            dist_version = f'unknown `{discord.__version__}`'
+            dist_version = f"unknown `{discord.__version__}`"
 
         summary = [
             f"Jishaku v{package_version('jishaku')}, {dist_version}, "
             f"`Python {sys.version}` on `{sys.platform}`".replace("\n", ""),
             f"Module was loaded <t:{self.load_time.timestamp():.0f}:R>, "
             f"cog was loaded <t:{self.start_time.timestamp():.0f}:R>.",
-            ""
+            "",
         ]
 
         # detect if [procinfo] feature is installed
@@ -84,9 +84,11 @@ class RootCommand(Feature):
                 with proc.oneshot():
                     try:
                         mem = proc.memory_full_info()
-                        summary.append(f"Using {natural_size(mem.rss)} physical memory and "
-                                       f"{natural_size(mem.vms)} virtual memory, "
-                                       f"{natural_size(mem.uss)} of which unique to this process.")
+                        summary.append(
+                            f"Using {natural_size(mem.rss)} physical memory and "
+                            f"{natural_size(mem.vms)} virtual memory, "
+                            f"{natural_size(mem.uss)} of which unique to this process."
+                        )
                     except psutil.AccessDenied:
                         pass
 
@@ -117,7 +119,7 @@ class RootCommand(Feature):
                     f" and can see {cache_summary}."
                 )
             else:
-                shard_ids = ', '.join(str(i) for i in self.bot.shards.keys())
+                shard_ids = ", ".join(str(i) for i in self.bot.shards.keys())
                 summary.append(
                     f"This bot is automatically sharded (Shards {shard_ids} of {self.bot.shard_count})"
                     f" and can see {cache_summary}."
@@ -137,16 +139,11 @@ class RootCommand(Feature):
             message_cache = "Message cache is disabled"
 
         if discord.version_info >= (1, 5, 0):
-            remarks = {
-                True: 'enabled',
-                False: 'disabled',
-                None: 'unknown'
-            }
+            remarks = {True: "enabled", False: "disabled", None: "unknown"}
 
             *group, last = (
                 f"{intent.replace('_', ' ')} intent is {remarks.get(getattr(self.bot.intents, intent, None))}"
-                for intent in
-                ('presences', 'members', 'message_content')
+                for intent in ("presences", "members", "message_content")
             )
 
             summary.append(f"{message_cache}, {', '.join(group)}, and {last}.")
@@ -162,30 +159,6 @@ class RootCommand(Feature):
 
         await ctx.send("\n".join(summary))
 
-    # pylint: disable=no-member
-    @Feature.Command(parent="jsk", name="hide")
-    async def jsk_hide(self, ctx: ContextA):
-        """
-        Hides Jishaku from the help command.
-        """
-
-        if self.jsk.hidden:  # type: ignore
-            return await ctx.send("Jishaku is already hidden.")
-
-        self.jsk.hidden = True  # type: ignore
-        await ctx.send("Jishaku is now hidden.")
-
-    @Feature.Command(parent="jsk", name="show")
-    async def jsk_show(self, ctx: ContextA):
-        """
-        Shows Jishaku in the help command.
-        """
-
-        if not self.jsk.hidden:  # type: ignore
-            return await ctx.send("Jishaku is already visible.")
-
-        self.jsk.hidden = False  # type: ignore
-        await ctx.send("Jishaku is now visible.")
     # pylint: enable=no-member
 
     @Feature.Command(parent="jsk", name="tasks")
@@ -201,17 +174,21 @@ class RootCommand(Feature):
 
         for task in self.tasks:
             if task.ctx.command:
-                paginator.add_line(f"{task.index}: `{task.ctx.command.qualified_name}`, invoked at "
-                                   f"{task.ctx.message.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC")
+                paginator.add_line(
+                    f"{task.index}: `{task.ctx.command.qualified_name}`, invoked at "
+                    f"{task.ctx.message.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC"
+                )
             else:
-                paginator.add_line(f"{task.index}: unknown, invoked at "
-                                   f"{task.ctx.message.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC")
+                paginator.add_line(
+                    f"{task.index}: unknown, invoked at "
+                    f"{task.ctx.message.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC"
+                )
 
         interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
         return await interface.send_to(ctx)
 
     @Feature.Command(parent="jsk", name="cancel")
-    async def jsk_cancel(self, ctx: ContextA, *, index: typing.Union[int, str]):
+    async def jsk_cancel(self, ctx: ContextA, *, index: str):
         """
         Cancels a task with the given index.
 
@@ -221,7 +198,13 @@ class RootCommand(Feature):
         if not self.tasks:
             return await ctx.send("No tasks to cancel.")
 
-        if index == "~":
+        _index: typing.Union[int, str] = index
+        try:
+            _index = int(index)  # type: ignore
+        except ValueError:
+            _index = str(index)
+
+        if _index == "~":
             task_count = len(self.tasks)
 
             for task in self.tasks:
@@ -232,13 +215,13 @@ class RootCommand(Feature):
 
             return await ctx.send(f"Cancelled {task_count} tasks.")
 
-        if isinstance(index, str):
+        if isinstance(_index, str):
             raise commands.BadArgument('Literal for "index" not recognized.')
 
-        if index == -1:
+        if _index == -1:
             task = self.tasks.pop()
         else:
-            task = discord.utils.get(self.tasks, index=index)
+            task = discord.utils.get(self.tasks, index=_index)
             if task:
                 self.tasks.remove(task)
             else:
@@ -248,8 +231,12 @@ class RootCommand(Feature):
             task.task.cancel()
 
         if task.ctx.command:
-            await ctx.send(f"Cancelled task {task.index}: `{task.ctx.command.qualified_name}`,"
-                           f" invoked at {task.ctx.message.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC")
+            await ctx.send(
+                f"Cancelled task {task.index}: `{task.ctx.command.qualified_name}`,"
+                f" invoked at {task.ctx.message.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC"
+            )
         else:
-            await ctx.send(f"Cancelled task {task.index}: unknown,"
-                           f" invoked at {task.ctx.message.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC")
+            await ctx.send(
+                f"Cancelled task {task.index}: unknown,"
+                f" invoked at {task.ctx.message.created_at.strftime('%Y-%m-%d %H:%M:%S')} UTC"
+            )
