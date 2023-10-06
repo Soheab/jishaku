@@ -60,8 +60,16 @@ class GuildFeature(Feature):
         for i in range(0, len(array), chunk_size):
             yield array[i : i + chunk_size]
 
-    @Feature.Command(parent="jsk", name="permtrace")
-    async def jsk_permtrace(
+    @Feature.Command(parent="jsk", name="guild", invoke_without_command=True, ignore_extras=True)
+    async def jsk_guild(self, ctx: ContextA):
+        """
+        The Jishaku guild-related commands.
+        """
+
+        await ctx.send_help(ctx.command)
+
+    @Feature.Command(parent="jsk_guild", name="permtrace")
+    async def jsk_guild_permtrace(
         self,
         ctx: ContextA,
         channel: typing.Union[discord.TextChannel, discord.VoiceChannel],

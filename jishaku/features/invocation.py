@@ -64,8 +64,17 @@ class InvocationFeature(Feature):
     else:
         OVERRIDE_SIGNATURE = typing.Union[SlimUserConverter, discord.TextChannel]
 
-    @Feature.Command(parent="jsk", name="override", aliases=["execute", "exec", "override!", "execute!", "exec!"])
-    async def jsk_override(
+    @Feature.Command(parent="jsk", name="invoke", invoke_without_command=True, ignore_extras=True)
+    async def jsk_invoke(self, ctx: ContextA,):
+        """
+        Invoke related commands.
+        """
+
+        await ctx.send_help(ctx.command)
+
+
+    @Feature.Command(parent="jsk_invoke", name="override", aliases=["execute", "exec", "override!", "execute!", "exec!"])
+    async def jsk_invoke_override(
         self,
         ctx: ContextT,
         overrides: commands.Greedy[OVERRIDE_SIGNATURE],
@@ -121,8 +130,8 @@ class InvocationFeature(Feature):
         await alt_ctx.command.invoke(alt_ctx)
         return
 
-    @Feature.Command(parent="jsk", name="repeat")
-    async def jsk_repeat(self, ctx: ContextT, times: int, *, command_string: str):
+    @Feature.Command(parent="jsk_invoke", name="repeat")
+    async def jsk_invoke_repeat(self, ctx: ContextT, times: int, *, command_string: str):
         """
         Runs a command multiple times in a row.
 
@@ -143,8 +152,8 @@ class InvocationFeature(Feature):
 
                 await alt_ctx.command.reinvoke(alt_ctx)
 
-    @Feature.Command(parent="jsk", name="debug", aliases=["dbg"])
-    async def jsk_debug(self, ctx: ContextT, *, command_string: str):
+    @Feature.Command(parent="jsk_invoke", name="debug", aliases=["dbg"])
+    async def jsk_invoke_debug(self, ctx: ContextT, *, command_string: str):
         """
         Run a command timing execution and catching exceptions.
         """
@@ -167,8 +176,8 @@ class InvocationFeature(Feature):
         end = time.perf_counter()
         return await ctx.send(f"Command `{alt_ctx.command.qualified_name}` finished in {end - start:.3f}s.")
 
-    @Feature.Command(parent="jsk", name="source", aliases=["src"])
-    async def jsk_source(self, ctx: ContextA, *, command_name: str):
+    @Feature.Command(parent="jsk_invoke", name="source", aliases=["src"])
+    async def jsk_invoke_source(self, ctx: ContextA, *, command_name: str):
         """
         Displays the source code for a command.
         """

@@ -401,16 +401,26 @@ class PaginatorInterface(ui.View):  # pylint: disable=too-many-instance-attribut
         # Unconditionally set send lock to try and guarantee page updates on unfocused pages
         self.send_lock.set()
 
-    async def send_to(self, destination: discord.abc.Messageable):
+    async def send_to(self, destination: discord.abc.Messageable, message: typing.Optional[discord.Message] = None):
         """
         Sends a message to the given destination with this interface.
 
         This automatically creates the response task for you.
         """
 
-        self.message = await destination.send(
-            **self.send_kwargs, allowed_mentions=discord.AllowedMentions.none()
-        )
+        if message:
+            attachments: list[typing.Any] = []
+            if "file" in self.send_kwargs:
+                attachments.append(self.send_kwargs.pop("file"))
+            if "files" in self.send_kwargs:
+                attachments.extend(self.send_kwargs.pop("files"))  
+
+            self.send_kwargs["attachments"] = attachments
+            self.message = await message.edit(**self.send_kwargs, allowed_mentions=discord.AllowedMentions.none())
+        else:
+            self.message = await destination.send(
+                **self.send_kwargs, allowed_mentions=discord.AllowedMentions.none()
+            )
 
         self.send_lock.set()
 

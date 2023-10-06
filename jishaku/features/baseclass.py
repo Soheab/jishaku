@@ -17,6 +17,7 @@ import contextlib
 import typing
 from datetime import datetime, timezone
 
+import discord
 from discord.ext import commands
 
 from jishaku.types import BotT, ContextA
@@ -178,7 +179,6 @@ class Feature(commands.Cog):
         ] = {}
 
         self.feature_commands: typing.Dict[str, commands.HybridCommand["Feature", typing.Any, typing.Any]] = {}
-
         for key, cmd in command_set:
             association_map[cmd] = target_cmd = cmd.convert(association_map)
             target_cmd.cog = self

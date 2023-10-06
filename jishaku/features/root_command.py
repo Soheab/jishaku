@@ -158,7 +158,7 @@ class RootCommand(Feature):
 
     # pylint: enable=no-member
 
-    @Feature.Command(parent="jsk", name="tasks")
+    @Feature.Command(parent="jsk", name="tasks", invoke_without_command=True, ignore_extras=False)
     async def jsk_tasks(self, ctx: ContextA):
         """
         Shows the currently running jishaku tasks.
@@ -184,8 +184,8 @@ class RootCommand(Feature):
         interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
         return await interface.send_to(ctx)
 
-    @Feature.Command(parent="jsk", name="cancel")
-    async def jsk_cancel(self, ctx: ContextA, *, index: str):
+    @Feature.Command(parent="jsk_tasks", name="cancel")
+    async def jsk_tasks_cancel(self, ctx: ContextA, *, index: str):
         """
         Cancels a task with the given index.
 

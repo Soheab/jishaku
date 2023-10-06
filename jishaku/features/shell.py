@@ -21,7 +21,7 @@ import typing
 
 from discord.ext import commands
 
-from jishaku.codeblocks import Codeblock, codeblock_converter
+from jishaku.codeblocks import Codeblock, get_input, CodeblockFromMessage
 from jishaku.exception_handling import ReplResponseReactor
 from jishaku.features.baseclass import Feature
 from jishaku.flags import Flags
@@ -70,14 +70,15 @@ class ShellFeature(Feature):
     Feature containing the shell-related commands
     """
 
-    @Feature.Command(parent="jsk", name="shell", aliases=["bash", "sh", "powershell", "ps1", "ps", "cmd", "terminal"])
-    async def jsk_shell(self, ctx: ContextA, *, argument: codeblock_converter):  # type: ignore
+    @Feature.Command(parent="jsk", name="shell", aliases=["bash", "sh", "powershell", "ps1", "ps", "cmd", "terminal"], invoke_without_command=True, ignore_extra=True)
+    async def jsk_shell(self, ctx: ContextA, *, argument: typing.Optional[typing.Annotated[Codeblock, CodeblockFromMessage]] = None):  # type: ignore
         """
         Executes statements in the system shell.
 
         This uses the system shell as defined in $SHELL, or `/bin/bash` otherwise.
         Execution can be cancelled by closing the paginator.
         """
+        argument = await get_input(ctx, argument)
 
         if typing.TYPE_CHECKING:
             argument: Codeblock = argument  # type: ignore
@@ -91,7 +92,7 @@ class ShellFeature(Feature):
                     paginator.add_line(f"{reader.ps1} {argument.content}\n")
 
                     interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
-                    self.bot.loop.create_task(interface.send_to(ctx))
+                    self.bot.loop.create_task(interface.send_to(ctx, message=argument.message))
 
                     async for line in reader:
                         if interface.closed:
@@ -100,22 +101,24 @@ class ShellFeature(Feature):
 
                 await interface.add_line(f"\n[status] Return code {reader.close_code}")
 
-    @Feature.Command(parent="jsk", name="git")
-    async def jsk_git(self, ctx: ContextA, *, argument: codeblock_converter):  # type: ignore
+    @Feature.Command(parent="jsk_shell", name="git")
+    async def jsk_shell_git(self, ctx: ContextA, *, argument: typing.Optional[typing.Annotated[Codeblock, CodeblockFromMessage]] = None):  # type: ignore
         """
         Shortcut for 'jsk sh git'. Invokes the system shell.
         """
+        argument = await get_input(ctx, argument)
 
         if typing.TYPE_CHECKING:
             argument: Codeblock = argument  # type: ignore
 
         return await ctx.invoke(self.jsk_shell, argument=Codeblock(argument.language, "git " + argument.content))  # type: ignore
 
-    @Feature.Command(parent="jsk", name="pip")
-    async def jsk_pip(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
+    @Feature.Command(parent="jsk_shell", name="pip")
+    async def jsk_shell_pip(self, ctx: commands.Context, *, argument: typing.Optional[typing.Annotated[Codeblock, CodeblockFromMessage]] = None):  # type: ignore
         """
         Shortcut for 'jsk sh pip'. Invokes the system shell.
         """
+        argument = await get_input(ctx, argument)
 
         if typing.TYPE_CHECKING:
             argument: Codeblock = argument  # type: ignore
@@ -136,11 +139,14 @@ class ShellFeature(Feature):
         return await ctx.invoke(self.jsk_shell, argument=Codeblock(argument.language, f"{executable} {argument.content}"))  # type: ignore
 
     if shutil.which('node') and shutil.which('npm'):
-        @Feature.Command(parent="jsk", name="node")
-        async def jsk_node(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
+        @Feature.Command(parent="jsk_shell", name="node")
+        async def jsk_shell_node(self, ctx: commands.Context, *, argument: typing.Optional[typing.Annotated[Codeblock, CodeblockFromMessage]] = None):  # type: ignore
             """
-            Shortcut for scaffolding and executing 'npm run'. Only exists if the executables are detected.
+            Shortcut for scaffolding and executing 'npm run'.
+            
+            Only exists if the executables are detected.
             """
+            argument = await get_input(ctx, argument)
 
             if typing.TYPE_CHECKING:
                 argument: Codeblock = argument  # type: ignore
@@ -151,11 +157,14 @@ class ShellFeature(Feature):
                 return await ctx.invoke(self.jsk_shell, argument=Codeblock("js", f"cd {directory} && {requirements}npm run main"))  # type: ignore
 
     if shutil.which('pyright'):
-        @Feature.Command(parent="jsk", name="pyright")
-        async def jsk_pyright(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
+        @Feature.Command(parent="jsk_shell", name="pyright")
+        async def jsk_shell_pyright(self, ctx: commands.Context, *, argument: typing.Optional[typing.Annotated[Codeblock, CodeblockFromMessage]] = None):  # type: ignore
             """
-            Shortcut for scaffolding and executing 'pyright main.py'. Only exists if the executables are detected.
+            Shortcut for scaffolding and executing 'pyright main.py'.
+            
+            Only exists if the executables are detected.
             """
+            argument = await get_input(ctx, argument)
 
             if typing.TYPE_CHECKING:
                 argument: Codeblock = argument  # type: ignore
@@ -164,11 +173,14 @@ class ShellFeature(Feature):
                 return await ctx.invoke(self.jsk_shell, argument=Codeblock("js", f"cd {directory} && pyright main.py"))  # type: ignore
 
     if shutil.which('rustc') and shutil.which('cargo'):
-        @Feature.Command(parent="jsk", name="rustc")
-        async def jsk_rustc(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
+        @Feature.Command(parent="jsk_shell", name="rustc")
+        async def jsk_shell_rustc(self, ctx: commands.Context, *, argument: typing.Optional[typing.Annotated[Codeblock, CodeblockFromMessage]] = None):  # type: ignore
             """
-            Shortcut for scaffolding and executing 'cargo run'. Only exists if the executables are detected.
+            Shortcut for scaffolding and executing 'cargo run'.
+            
+            Only exists if the executables are detected.
             """
+            argument = await get_input(ctx, argument)
 
             if typing.TYPE_CHECKING:
                 argument: Codeblock = argument  # type: ignore

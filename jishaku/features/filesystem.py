@@ -33,8 +33,16 @@ class FilesystemFeature(Feature):
 
     __cat_line_regex = re.compile(r"(?:\.\/+)?(.+?)(?:#L?(\d+)(?:\-L?(\d+))?)?$")
 
-    @Feature.Command(parent="jsk", name="cat")
-    async def jsk_cat(self, ctx: ContextA, argument: str):
+    @Feature.Command(parent="jsk", name="file", invoke_without_command=True, ignore_extra=False)
+    async def jsk_file(self, ctx: ContextA):
+        """
+        The Jishaku file management command group.
+        """
+
+        await ctx.send_help(ctx.command)
+
+    @Feature.Command(parent="jsk_file", name="cat")
+    async def jsk_file_cat(self, ctx: ContextA, argument: str):
         """
         Read out a file, using syntax highlighting if detected.
 
@@ -92,8 +100,8 @@ class FilesystemFeature(Feature):
         except ValueError as exc:
             return await ctx.send(f"`{path}`: Couldn't read this file, {exc}")
 
-    @Feature.Command(parent="jsk", name="curl")
-    async def jsk_curl(self, ctx: ContextA, url: str):
+    @Feature.Command(parent="jsk_file", name="curl")
+    async def jsk_file_curl(self, ctx: ContextA, url: str):
         """
         Download and display a text file from the internet.
 
