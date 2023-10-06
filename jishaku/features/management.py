@@ -224,11 +224,11 @@ class ManagementFeature(Feature):
         guilds_set: typing.Set[typing.Optional[int]] = set()
         targets = [t for target in targets.split(" ") if (t := target.strip())]  # type: ignore
         for target in targets:
-            if target == "$":
+            if target == '$':
                 guilds_set.add(None)
-            elif target == "*":
+            elif target == '*':
                 guilds_set |= set(self.bot.tree._guild_commands.keys())  # type: ignore  # pylint: disable=protected-access
-            elif target == ".":
+            elif target == '.':
                 if ctx.guild:
                     guilds_set.add(ctx.guild.id)
                 else:
@@ -250,7 +250,7 @@ class ManagementFeature(Feature):
             slash_commands = self.bot.tree._get_all_commands(  # type: ignore  # pylint: disable=protected-access
                 guild=discord.Object(guild) if guild else None
             )
-            translator = getattr(self.bot.tree, "translator", None)
+            translator = getattr(self.bot.tree, 'translator', None)
             if translator:
                 payload = [await command.get_translated_payload(translator) for command in slash_commands]
             else:
@@ -260,9 +260,7 @@ class ManagementFeature(Feature):
                 if guild is None:
                     data = await self.bot.http.bulk_upsert_global_commands(self.bot.application_id, payload=payload)
                 else:
-                    data = await self.bot.http.bulk_upsert_guild_commands(
-                        self.bot.application_id, guild, payload=payload
-                    )
+                    data = await self.bot.http.bulk_upsert_guild_commands(self.bot.application_id, guild, payload=payload)
 
                 synced = [
                     discord.app_commands.AppCommand(data=d, state=ctx._state)  # type: ignore  # pylint: disable=protected-access,no-member
@@ -283,7 +281,7 @@ class ManagementFeature(Feature):
                         pool = slash_commands
                         selected_command = None
                         name = ""
-                        parts = match.group(1).split(".")
+                        parts = match.group(1).split('.')
                         assert len(parts) % 2 == 0
 
                         for part_index in range(0, len(parts), 2):
@@ -295,7 +293,7 @@ class ManagementFeature(Feature):
                                 selected_command = pool[index]  # type: ignore
                                 name += selected_command.name + " "
 
-                                if hasattr(selected_command, "_children"):  # type: ignore
+                                if hasattr(selected_command, '_children'):  # type: ignore
                                     pool = list(selected_command._children.values())  # type: ignore  # pylint: disable=protected-access
                                 else:
                                     pool = None
@@ -307,33 +305,27 @@ class ManagementFeature(Feature):
                         if selected_command:
                             to_inspect: typing.Any = None
 
-                            if hasattr(selected_command, "callback"):  # type: ignore
+                            if hasattr(selected_command, 'callback'):  # type: ignore
                                 to_inspect = selected_command.callback  # type: ignore
                             elif isinstance(selected_command, commands.Cog):
                                 to_inspect = type(selected_command)
 
                             try:
-                                error_lines.append(
-                                    "".join(
-                                        [
-                                            "\N{MAGNET} This is likely caused by: `",
-                                            name,
-                                            "` at ",
-                                            str(inspections.file_loc_inspection(to_inspect)),  # type: ignore
-                                            ":",
-                                            str(inspections.line_span_inspection(to_inspect)),  # type: ignore
-                                        ]
-                                    )
-                                )
+                                error_lines.append(''.join([
+                                    "\N{MAGNET} This is likely caused by: `",
+                                    name,
+                                    "` at ",
+                                    str(inspections.file_loc_inspection(to_inspect)),  # type: ignore
+                                    ":",
+                                    str(inspections.line_span_inspection(to_inspect)),  # type: ignore
+                                ]))
                             except Exception:  # pylint: disable=broad-except
                                 error_lines.append(f"\N{MAGNET} This is likely caused by: `{name}`")
 
                     except Exception as diag_error:  # pylint: disable=broad-except
-                        error_lines.append(
-                            f"\N{MAGNET} Couldn't determine cause: {type(diag_error).__name__}: {diag_error}"
-                        )
+                        error_lines.append(f"\N{MAGNET} Couldn't determine cause: {type(diag_error).__name__}: {diag_error}")
 
-                error_text = "\n".join(error_lines)
+                error_text = '\n'.join(error_lines)
 
                 if guild:
                     paginator.add_line(f"\N{WARNING SIGN} `{guild}`: {error_text}", empty=True)
@@ -341,9 +333,7 @@ class ManagementFeature(Feature):
                     paginator.add_line(f"\N{WARNING SIGN} Global: {error_text}", empty=True)
             else:
                 if guild:
-                    paginator.add_line(
-                        f"\N{SATELLITE ANTENNA} `{guild}` Synced {len(synced)} guild commands", empty=True
-                    )
+                    paginator.add_line(f"\N{SATELLITE ANTENNA} `{guild}` Synced {len(synced)} guild commands", empty=True)
                 else:
                     paginator.add_line(f"\N{SATELLITE ANTENNA} Synced {len(synced)} global commands", empty=True)
 
