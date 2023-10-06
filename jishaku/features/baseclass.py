@@ -14,11 +14,9 @@ The base Feature class that serves as the superclass of all feature components.
 import asyncio
 import collections
 import contextlib
-import sys
 import typing
 from datetime import datetime, timezone
 
-import discord
 from discord.ext import commands
 
 from jishaku.types import BotT, ContextA
@@ -37,19 +35,11 @@ else:
 _FeatureCommandToCommand = typing.Callable[..., typing.Callable[[typing.Callable[..., typing.Any]], _ConvertedCommand]]
 _FeatureCommandToGroup = typing.Callable[..., typing.Callable[[typing.Callable[..., typing.Any]], _ConvertedGroup]]
 
-T = typing.TypeVar("T")
-
-if sys.version_info < (3, 10):
-    from typing_extensions import Concatenate, ParamSpec
-
-    P = ParamSpec("P")
-    Task = asyncio.Task
-else:
-    Concatenate = typing.Concatenate  # pylint: disable=no-member
-    P = typing.ParamSpec("P")  # pylint: disable=no-member
-    Task = asyncio.Task[typing.Any]
-
-GenericFeature = typing.TypeVar("GenericFeature", bound="Feature")
+T = typing.TypeVar('T')
+P = typing.ParamSpec('P')
+Concatenate = typing.Concatenate
+Task = asyncio.Task[typing.Any]
+GenericFeature = typing.TypeVar('GenericFeature', bound='Feature')
 
 
 class CommandTask(typing.NamedTuple):

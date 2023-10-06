@@ -13,9 +13,12 @@ Functions pertaining to the disassembly of Python code
 
 import ast
 import dis
+import sys
+import types
 import typing
 
 import import_expression  # type: ignore
+import opcode
 
 from jishaku.repl.scope import Scope
 
@@ -93,25 +96,19 @@ def disassemble(
 
     func_def = scope.locals.get('_repl_coroutine') or scope.globals['_repl_coroutine']
 
-    # pylint is gonna really hate this part onwards
-    # pylint: disable=protected-access
-    co = func_def.__code__
-
-    for instruction in dis._get_instructions_bytes(  # type: ignore
-        co.co_code, co.co_varnames, co.co_names, co.co_consts,
-        co.co_cellvars + co.co_freevars, dict(dis.findlinestarts(co)),
-        line_offset=0
+    for instruction in dis.get_instructions(  # type: ignore
+        func_def, first_line=0
     ):
         instruction: dis.Instruction
 
         if instruction.starts_line is not None and instruction.offset > 0:
             yield ''
 
+        # pylint: disable=protected-access
         yield instruction._disassemble(  # type: ignore
             4, False, 4
         )
-
-    # pylint: enable=protected-access
+        # pylint: enable=protected-access
 
 
 TREE_CONTINUE = ('\N{BOX DRAWINGS HEAVY VERTICAL AND RIGHT}', '\N{BOX DRAWINGS HEAVY VERTICAL}')
@@ -167,7 +164,7 @@ def format_ast_block(
                 yield f"{stalk + (' ' * len(header.format(index)))} {description}"
 
 
-def format_ast_node(node: ast.AST, level: int = 0, use_ansi: bool = True) -> typing.Generator[str, None, None]:
+def format_ast_node(node: typing.Optional[ast.AST], level: int = 0, use_ansi: bool = True) -> typing.Generator[str, None, None]:
     """
     Recursively formats an AST node structure
 
@@ -175,22 +172,28 @@ def format_ast_node(node: ast.AST, level: int = 0, use_ansi: bool = True) -> typ
     Serious refactoring consideration required here.
     """
 
-    # Node name
-    if use_ansi:
-        yield f"\u001b[{(level % 6) + 31}m{type(node).__name__}\u001b[0m"
+    if isinstance(node, ast.AST):
+        if use_ansi:
+            yield f"\u001b[{(level % 6) + 31}m{type(node).__name__}\u001b[0m"
+        else:
+            yield type(node).__name__
+
+        fields = node._fields
+
+        for index, field in enumerate(fields):
+            yield from format_ast_block(
+                getattr(node, field),
+                header=field,
+                through=index < len(fields) - 1,
+                level=level,
+                use_ansi=use_ansi
+            )
+
     else:
-        yield type(node).__name__
-
-    fields = node._fields
-
-    for index, field in enumerate(fields):
-        yield from format_ast_block(
-            getattr(node, field),
-            header=field,
-            through=index < len(fields) - 1,
-            level=level,
-            use_ansi=use_ansi
-        )
+        if use_ansi:
+            yield f"\u001b[1;4m{repr(node)}\u001b[0m"
+        else:
+            yield repr(node)
 
 
 def create_tree(code: str, use_ansi: bool = True) -> str:
@@ -200,3 +203,96 @@ def create_tree(code: str, use_ansi: bool = True) -> str:
 
     user_code = import_expression.parse(code, mode='exec')  # type: ignore
     return '\n'.join(format_ast_node(user_code, use_ansi=use_ansi))
+
+
+def recurse_code(code: types.CodeType) -> typing.Generator[types.CodeType, None, None]:
+    """
+    Yields this code object and any nested code objects
+    """
+
+    yield code
+
+    for constant in code.co_consts:
+        if isinstance(constant, types.CodeType):
+            yield from recurse_code(constant)
+
+
+if sys.version_info >= (3, 11):
+    SPECIALIZED_INSTRUCTIONS: typing.Set[str] = frozenset(opcode._specialized_instructions)  # type: ignore  # pylint: disable=protected-access,no-member
+else:
+    SPECIALIZED_INSTRUCTIONS: typing.Set[str] = frozenset()
+
+SUPERINSTRUCTIONS = frozenset(
+    {
+        "BINARY_OP_INPLACE_ADD_UNICODE",
+        "COMPARE_OP_FLOAT_JUMP",
+        "COMPARE_OP_INT_JUMP",
+        "COMPARE_OP_STR_JUMP",
+        "LOAD_CONST__LOAD_FAST",
+        "LOAD_FAST__LOAD_CONST",
+        "LOAD_FAST__LOAD_FAST",
+        "PRECALL_BUILTIN_CLASS",
+        "PRECALL_BUILTIN_FAST_WITH_KEYWORDS",
+        "PRECALL_METHOD_DESCRIPTOR_FAST_WITH_KEYWORDS",
+        "PRECALL_NO_KW_BUILTIN_FAST",
+        "PRECALL_NO_KW_BUILTIN_O",
+        "PRECALL_NO_KW_ISINSTANCE",
+        "PRECALL_NO_KW_LEN",
+        "PRECALL_NO_KW_METHOD_DESCRIPTOR_FAST",
+        "PRECALL_NO_KW_METHOD_DESCRIPTOR_NOARGS",
+        "PRECALL_NO_KW_METHOD_DESCRIPTOR_O",
+        "PRECALL_NO_KW_STR_1",
+        "PRECALL_NO_KW_TUPLE_1",
+        "PRECALL_NO_KW_TYPE_1",
+        "STORE_FAST__LOAD_FAST",
+        "STORE_FAST__STORE_FAST",
+        "PRECALL_NO_KW_LIST_APPEND"
+    }
+)
+
+
+def get_adaptive_spans(code: types.CodeType) -> typing.Generator[
+    typing.Tuple[
+        dis.Instruction,
+        int,
+        typing.Optional[typing.Tuple[int, int]],
+        bool, bool
+    ],
+    None, None
+]:
+    """
+    Yields instructions from this code
+    """
+
+    for child in recurse_code(code):
+        # Adaptive info only supported in >=3.11
+        if sys.version_info >= (3, 11):
+            instructions = dis.get_instructions(child, adaptive=True)  # pylint: disable=unexpected-keyword-arg
+        else:
+            instructions = dis.get_instructions(child)
+
+        for instruction in instructions:
+            if not instruction or instruction.positions is None:
+                continue
+
+            lineno, _, col_offset, end_col_offset = instruction.positions
+            specialized = False
+            adaptive = False
+
+            if lineno is None:
+                continue
+
+            if col_offset is None:
+                span = None
+            elif end_col_offset is None:
+                span = (col_offset, col_offset)
+            else:
+                span = (col_offset, end_col_offset)
+
+            if instruction.opname in SPECIALIZED_INSTRUCTIONS or instruction.opname in SUPERINSTRUCTIONS:
+                specialized = True
+
+            if instruction.opname.endswith("_ADAPTIVE"):
+                adaptive = True
+
+            yield (instruction, lineno, span, specialized, adaptive)

@@ -304,10 +304,14 @@ class SQLFeature(Feature):
         if adapter_shim is None:
             return await ctx.send("No SQL adapter could be found on this bot.")
 
+        output = None
         async with adapter_shim.use():
             async with ReplResponseReactor(ctx.message):
                 with self.submit(ctx):
                     output = await adapter_shim.fetchrow(query)
+
+        if output is None:
+            return
 
         if not output:
             return await ctx.reply("No results produced.")
@@ -337,10 +341,14 @@ class SQLFeature(Feature):
         if adapter_shim is None:
             return await ctx.send("No SQL adapter could be found on this bot.")
 
+        output = None
         async with adapter_shim.use():
             async with ReplResponseReactor(ctx.message):
                 with self.submit(ctx):
                     output = await adapter_shim.fetch(query)
+
+        if output is None:
+            return
 
         if not output:
             return await ctx.reply("No results produced.")
@@ -365,7 +373,7 @@ class SQLFeature(Feature):
             interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
             await interface.send_to(ctx)
 
-    @Feature.Command(parent="jsk_sql", name="select", aliases=['SELECT'])
+    @Feature.Command(parent="jsk_sql", name="select")
     async def jsk_sql_select(self, ctx: ContextA, *, query: str):
         """
         Shortcut for 'jsk sql fetch select'.
@@ -384,10 +392,14 @@ class SQLFeature(Feature):
         if adapter_shim is None:
             return await ctx.send("No SQL adapter could be found on this bot.")
 
+        output = None
         async with adapter_shim.use():
             async with ReplResponseReactor(ctx.message):
                 with self.submit(ctx):
                     output = await adapter_shim.execute(query)
+
+        if output is None:
+            return
 
         await ctx.reply(content=output)
 
@@ -402,10 +414,14 @@ class SQLFeature(Feature):
         if adapter_shim is None:
             return await ctx.send("No SQL adapter could be found on this bot.")
 
+        output = None
         async with adapter_shim.use():
             async with ReplResponseReactor(ctx.message):
                 with self.submit(ctx):
                     output = await adapter_shim.table_summary(query)
+
+        if output is None:
+            return
 
         if not output:
             return await ctx.reply("No results produced.")
