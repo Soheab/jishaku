@@ -21,6 +21,7 @@ import discord
 from discord.ext import commands
 
 from jishaku.types import BotT, ContextA
+from jishaku.flags import Flags
 
 __all__ = ("Feature", "CommandTask")
 
@@ -123,7 +124,15 @@ class Feature(commands.Cog):
                     "A Features.HybridCommand lacked a callback at the time it was attempted to be converted"
                 )
 
-            return command_type(**self.kwargs)(self.callback)  # type: ignore
+            cmd = command_type(**self.kwargs)(self.callback)  # type: ignore
+
+            if (fgids := Flags.GUILD_IDS) and isinstance(fgids, list):
+                try:
+                    cmd.app_command._guild_ids = Flags.GUILD_IDS # type: ignore
+                except AttributeError:
+                    pass
+
+            return cmd  # type: ignore
 
     load_time: datetime = datetime.utcnow().replace(tzinfo=timezone.utc)
 

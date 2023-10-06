@@ -167,6 +167,19 @@ class Flags(metaclass=FlagMeta):  # pylint: disable=too-few-public-methods
     # Flag to indicate all errors, even minor ones like SyntaxErrors, should be sent via direct message.
     ALWAYS_DM_TRACEBACK: bool
 
+    _GUILD_IDS: list[int]
+
+    @property
+    def GUILD_IDS(self) -> list[int]:
+        try:
+            return self._GUILD_IDS
+        except AttributeError:
+            return []
+    
+    @GUILD_IDS.setter
+    def GUILD_IDS(self, value: list[int]):
+        self._GUILD_IDS = value  # type: ignore
+
     @classmethod
     def traceback_destination(cls, message: discord.Message) -> typing.Optional[discord.abc.Messageable]:
         """
